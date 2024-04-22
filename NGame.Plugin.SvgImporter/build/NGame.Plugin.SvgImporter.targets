@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+
+    <Target Name="_NGameAssetProcessorsSvgImporterSetProperties">
+        <PropertyGroup>
+            <NGameAssetProcessorsSvgPath>$(IntermediateOutputPath)NGame.Plugin.SvgImporter/</NGameAssetProcessorsSvgPath>
+            <NGameAssetProcessorsSvgTimeStamp>$(NGameAssetProcessorsSvgPath)timestamp</NGameAssetProcessorsSvgTimeStamp>
+        </PropertyGroup>
+    </Target>
+
+
+    <Target
+        Name="_NGameAssetProcessorsSvgImporterFindFiles"
+        DependsOnTargets="_NGameAssetProcessorsSvgImporterSetProperties"
+    >
+        <ItemGroup>
+            <SvgAsset
+                Include="@(NgAsset)"
+                Condition=" '%(NgAsset.DataFileExtension)' == '.svg' "
+            />
+        </ItemGroup>
+        <Message Text="SvgImporter considers files: @(SvgAsset)"/>
+    </Target>
+
+
+    <Target
+        Name="NGameAssetProcessorsImportSvgs"
+        BeforeTargets="NGameAssetsDetection_WriteList"
+        DependsOnTargets="_NGameAssetProcessorsSvgImporterSetProperties;_NGameAssetProcessorsSvgImporterFindFiles"
+        Inputs="@(SvgAsset);@(SvgAsset -> '%(DataFile)')"
+        Outputs="$(NGameAssetProcessorsSvgTimeStamp)"
+    >
+        <RemoveDir Directories="$(NGameAssetProcessorsSvgPath)"/>
+
+        <WriteSvgToPng
+            SvgAssets="@(SvgAsset)"
+            TargetFolder="$(NGameAssetProcessorsSvgPath)"
+        >
+            <Output TaskParameter="ChangedAssets" ItemName="ChangedSvgAsset" />
+        </WriteSvgToPng>
+
+        <ItemGroup>
+            <NgAsset Remove="@(ChangedSvgAsset)"/>
+            <NgAsset
+                Include="@(ChangedSvgAsset)"
+                DataFile="%(ChangedSvgAsset.DataFile)"
+                DataFileExtension="%(ChangedSvgAsset.DataFileExtension)"
+            />
+        </ItemGroup>
+ 
+        <Touch Files="$(NGameAssetProcessorsSvgTimeStamp)" AlwaysCreate="true"/>
+
+        <Message Text="SvgImporter created files: @(ChangedSvgAsset -> '%(DataFile)')"/>
+    </Target>
+
+
+    <Target Name="AfterClean" DependsOnTargets="_NGameAssetProcessorsSvgImporterSetProperties">
+        <RemoveDir Directories="$(NGameAssetProcessorsSvgPath)"/>
+    </Target>
+</Project>
